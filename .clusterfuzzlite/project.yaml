@@ -1,0 +1,9 @@
+language: c++
+fuzzing_engines:
+  - libfuzzer
+sanitizers:
+  - address
+main_repo: https://github.com/a-micable/archive_format_parser
+fuzzers:
+  - unpack_fuzzer
+  - nested_fuzzer
