@@ -4,13 +4,18 @@
 #include <vector>
 
 #include "archive.h"
+#include "inspect.h"
+#include "manifest.h"
+#include "validator.h"
 
 namespace {
 
 void printUsage(std::ostream& out) {
     out << "usage:\n"
         << "  vector pack [--compress] <files...> <out.vec>\n"
-        << "  vector unpack <archive.vec> [output-dir]\n";
+        << "  vector unpack <archive.vec> [output-dir]\n"
+        << "  vector list [--json] <archive.vec>\n"
+        << "  vector verify [--json] <archive.vec>\n";
 }
 
 int run(int argc, char** argv) {
@@ -55,6 +60,50 @@ int run(int argc, char** argv) {
             return 1;
         }
         return 0;
+    }
+
+    if (command == "list") {
+        bool json = false;
+        int archive_arg = 2;
+        if (argc > 2 && std::string(argv[2]) == "--json") {
+            json = true;
+            archive_arg = 3;
+        }
+        if (argc != archive_arg + 1) {
+            printUsage(std::cerr);
+            return 2;
+        }
+        vector::InspectOptions options;
+        options.source_name = argv[archive_arg];
+        vector::InspectResult result = vector::inspectArchiveFile(argv[archive_arg], options);
+        if (json) {
+            std::cout << vector::formatManifestJson(result.manifest);
+        } else {
+            std::cout << vector::formatManifestText(result.manifest);
+        }
+        return result.manifest.diagnostics.hasErrors() ? 1 : 0;
+    }
+
+    if (command == "verify") {
+        bool json = false;
+        int archive_arg = 2;
+        if (argc > 2 && std::string(argv[2]) == "--json") {
+            json = true;
+            archive_arg = 3;
+        }
+        if (argc != archive_arg + 1) {
+            printUsage(std::cerr);
+            return 2;
+        }
+        vector::ValidationOptions options;
+        options.inspect.source_name = argv[archive_arg];
+        vector::ValidationResult result = vector::validateArchiveFile(argv[archive_arg], options);
+        if (json) {
+            std::cout << vector::formatValidationJson(result);
+        } else {
+            std::cout << vector::formatValidationText(result);
+        }
+        return result.ok ? 0 : 1;
     }
 
     printUsage(std::cerr);
